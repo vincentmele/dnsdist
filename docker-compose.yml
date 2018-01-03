@@ -1,0 +1,82 @@
+version: '3.4'
+
+services:
+  dnsdist:
+    image: inoc/dnsdist
+    ports:
+      - 53:53
+      - 53:53/udp
+      - 8083:8083
+      - 5199:5199
+    volumes:
+      - ./conf/dnsdist.conf:/etc/dnsdist.conf
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.datacenter == ${DATACENTER}
+          - node.labels.app.dnsdist == true
+      resources:
+        reservations:
+          memory: 256M
+          cpus: '0.10'
+      restart_policy:
+        condition: any
+        delay: 2s
+        window: 30s
+      update_config:
+        parallelism: 1
+        order: start-first
+        delay: 10s
+        failure_action: rollback
+
+  resolver-1:
+    image: inoc/knot-resolver
+    command: /usr/local/sbin/kresd -f 1 -c /tmp/resolver.conf
+    volumes:
+      - ./conf/resolver.conf:/tmp/resolver.conf
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.labels.datacenter == ${DATACENTER}
+          - node.labels.app.dns-resolver == true
+      restart_policy:
+        condition: any
+        delay: 2s
+        window: 30s
+      update_config:
+          parallelism: 1
+          order: start-first
+          delay: 10s
+          failure_action: rollback
+
+  resolver-2:
+    image: inoc/knot-resolver
+    command: /usr/local/sbin/kresd -f 1 -c /tmp/resolver.conf
+    volumes:
+      - ./conf/resolver.conf:/tmp/resolver.conf
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.labels.datacenter == ${DATACENTER}
+          - node.labels.app.dns-resolver == true
+      restart_policy:
+        condition: any
+        delay: 2s
+        window: 30s
+      update_config:
+          parallelism: 1
+          order: start-first
+          delay: 10s
+          failure_action: rollback
+
+  redis:
+    image: redis:alpine
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.datacenter == ${DATACENTER}
+          - node.labels.app.dns-resolver == true
