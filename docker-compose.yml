@@ -35,42 +35,14 @@ services:
     command: /usr/local/sbin/kresd -f 1 -c /tmp/resolver.conf
     volumes:
       - ./conf/resolver.conf:/tmp/resolver.conf
-    deploy:
-      replicas: 2
-      placement:
-        constraints:
-          - node.labels.datacenter == ${DATACENTER}
-          - node.labels.app.dns-resolver == true
-      restart_policy:
-        condition: any
-        delay: 2s
-        window: 30s
-      update_config:
-          parallelism: 1
-          order: start-first
-          delay: 10s
-          failure_action: rollback
+    deploy: *resolver-deploy
 
   resolver-2:
     image: inoc/knot-resolver
     command: /usr/local/sbin/kresd -f 1 -c /tmp/resolver.conf
     volumes:
       - ./conf/resolver.conf:/tmp/resolver.conf
-    deploy:
-      replicas: 2
-      placement:
-        constraints:
-          - node.labels.datacenter == ${DATACENTER}
-          - node.labels.app.dns-resolver == true
-      restart_policy:
-        condition: any
-        delay: 2s
-        window: 30s
-      update_config:
-          parallelism: 1
-          order: start-first
-          delay: 10s
-          failure_action: rollback
+    deploy: *resolver-deploy
 
   redis:
     image: redis:alpine
@@ -80,3 +52,21 @@ services:
         constraints:
           - node.labels.datacenter == ${DATACENTER}
           - node.labels.app.dns-resolver == true
+
+x-resolver-deploy:
+  &resolver-deploy
+  replicas: 2
+  placement:
+    constraints: 
+      - node.labels.datacenter == ${DATACENTER}
+      - node.labels.app.dns-resolver == true
+  restart_policy:
+    condition: any
+    delay: 2s
+    window: 30s
+  update_config:
+      parallelism: 1
+      order: start-first
+      delay: 10s
+      failure_action: rollback
+
